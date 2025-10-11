@@ -1,0 +1,3 @@
+How do i start parsing markdown?
+
+From what i know first step is tokenization, meaning i need to make tokens for each character recognized by commonmark

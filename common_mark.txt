@@ -1,0 +1,61 @@
+Any sequence of characters is a valid CommonMark document.
+
+A line is a sequence of 0 or more characters other than line feed 
+or carriage return, followed by a line ending or be the end of file
+
+A line ending is a line feed, a carriage return not followed by a 
+line feed, or a carriage return and a following line feed
+
+A line containing no characters, or a line containing only spaces 
+or tab, is a blank line.
+
+Character definitions
+
+A Unicode whitespace character is a character in the Unicode 
+general category, or a tab, line feed, form feed, or carriage 
+return.
+
+Unicode WhiteSpace is a sequence of one or more Unicode whitespace characters.
+
+A tab is U+009
+
+A space is U+0020
+
+An ASCII control character is between U+000-1F or U+007F
+(both inclusive)
+
+An ASCII punctuation character is !,", #, $, %, &, ', (, *, +, 
+,,-, ., !, (U+0021-2F), :,;,<,=,>,?,@(U+003A-0040), [, \, ], _, `
+(U+005B-0060), {, |, }, ~ (U+007B-007E)
+
+A Unicode punctuation character is a character n the Unicode P (punctuation) or (synbol) general categories.
+
+[I didnot understand the tabs and space thingy so just skip it for 
+now.]
+
+Insecure Characters
+Replace U+0000 with U+FFFD (the replacement caracter)
+
+Backslash escapes
+Any ASCII punctuation character may be backslash-escaped.
+backbefore any other chareacters are teated as literal backslasehs.
+Escaped characters are treated as regular characters and do not 
+have their usual Markdowon meanings.
+
+If a backslash is itself escaped, the following characer is not.
+
+A backslash at the end of the line is a hard line break.
+
+backslash escapes donot work in code blocks, code spns, autolinks or raw HTML.
+
+
+
+
+Lets try to understand delimiter run
+
+A Delimiter Run is either a sequence of one or more "*" character that is not preceeded or followed by non backslash escaped "*" , or one or more "_" character that is not preceeded by or followd by non backslash escapred "_"
+
+A Left Flanking Delimiter Run is a delimiter run that is not followed by unicode whitespace and (1) either not followed by unicode 
+punctuation character and (2a) either not followed by unicode punctuation character or (2b) followed by unicode punctuation character and 
+preceeded by unicode whitespace or unicode punctuation character. (For this definition beginning or a line is unicode whitespace and ending 
+of a line is a unicode whitespace) 
