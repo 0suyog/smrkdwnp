@@ -85,7 +85,7 @@ func IsRightFlankingDelimiterRun(text []rune, from int, to int) bool {
 	return true
 }
 
-func GetEscapedCharacter(text []rune, index int) (rune, bool) {
+func GetEscapedPunctuation(text []rune, index int) (rune, bool) {
 	nextRune, err := Peek(text, index)
 	if err != nil {
 		return rune(0), false

@@ -5,7 +5,7 @@ import (
 	"github.com/0suyog/smrkdwnp/utils"
 )
 
-func CodeSpanParser(text []rune, currentIndex *int) ast.LeafNode {
+func CodeSpanParser(text []rune, currentIndex *int) ast.Node {
 	tempIndex := *currentIndex
 	if text[tempIndex] != '`' {
 		return ast.NULLNODE
@@ -97,39 +97,61 @@ func CodeSpanParser(text []rune, currentIndex *int) ast.LeafNode {
 		}
 	}
 	*currentIndex = tempIndex
-	return ast.NewLeafNode("CODESPAN", matchedText)
+	return ast.NewNode("CODESPAN", []ast.Node{ast.NewTextNode(matchedText)})
 
 }
 
-func EmphasisParser(text []rune, currentIndex *int) ast.LeafNode {
-	// return NullNode if the rune at current index isnt "*"
-	if text[*currentIndex] != '*' {
-		return ast.NULLNODE
-	}
-	matchedRunes := []rune{}
-	foundCloseTag := false
-	delimiterStartInd := *currentIndex
-
-	// now that the "*" isnt escaped begin to parse inner text
-
-	tempIndex := *currentIndex + 1
+func EmphasisParser(text []rune, currentIndex *int) ast.Node {
+	ds := NewDelimiterStack()
+	char := '*'
+	tempIndex := *currentIndex
 
 	for {
-		if text[tempIndex] != '*' {
-			break
+		delimiterStartPosition := tempIndex
+		for {
+			if text[tempIndex] != char {
+				// if we  found a delimiter then check if its a opening one and if it is push it in stack
+				if delimiterStartPosition != tempIndex {
+					if utils.IsLeftFlankingDelimiterRun(text, delimiterStartPosition, tempIndex) {
+						ds.Push(NewDelimiter(char, tempIndex-delimiterStartPosition, delimiterStartPosition, true))
+					}
+					// if found a right flanking delimiter then peek inside the stack if there is a matching delimiter and then if there is pop it out
+					// and create a node
+					if utils.IsRightFlankingDelimiterRun(text, delimiterStartPosition, tempIndex) {
+						closingDelimiter := NewDelimiter(char, tempIndex-delimiterStartPosition, delimiterStartPosition, false)
+						topDelimiter, ok := ds.Peek()
+						if !ok {
+							return ast.NULLNODE
+							// handle what happens if the array is empty
+						}
+						if !ArePairs(closingDelimiter, topDelimiter) {
+
+							// hendle if they arent pairs
+						}
+						// if are pairs then pop the stack and create a node
+						poppedDelimiter, _ := ds.Pop()
+						newEmphasisNode := ast.NewEmphasisNode(poppedDelimiter.Nodes())
+						// try to push created node into stacks top delimiter, if delimiterstack empty then return as its last
+						ok = ds.PushNode(newEmphasisNode)
+						if !ok {
+							return newEmphasisNode
+						}
+					}
+				}
+				break
+			}
+			tempIndex++
 		}
-		tempIndex++
-	}
-
-	if !utils.IsLeftFlankingDelimiterRun(text, delimiterStartInd, tempIndex) {
-		return ast.NULLNODE
-	}
-
-	for {
-		if text[tempIndex] == '\\' {
+		for {
+			text := []rune{}
+			if text[tempIndex] == char {
+				if len(text) > 0 {
+					ds.PushNode(ast.NewTextNode(string(text)))
+				}
+			}
+			text = append(text, text[tempIndex])
+			tempIndex++
 		}
-		matchedRunes = append(matchedRunes, text[tempIndex])
-
 	}
 
 }
