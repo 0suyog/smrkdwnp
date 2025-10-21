@@ -3,9 +3,11 @@ package main
 import (
 	"fmt"
 
-	"github.com/0suyog/smrkdwnp/utils"
+	"github.com/0suyog/smrkdwnp/parser"
+	// "github.com/0suyog/smrkdwnp/utils"
 )
 
 func main() {
-	fmt.Println(utils.IsRightFlankingDelimiterRun([]rune(" _\"abc\""), 1, 1))
+	ind := 0
+	fmt.Println(parser.EmphasisAndStrongParser([]rune("*foo *bar**"), &ind))
 }
