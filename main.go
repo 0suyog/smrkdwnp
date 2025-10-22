@@ -9,5 +9,5 @@ import (
 
 func main() {
 	ind := 0
-	fmt.Println(parser.EmphasisAndStrongParser([]rune("*foo *bar**"), &ind))
+	fmt.Println(parser.EmphasisAndStrongParser([]rune("*foo **bar** baz*"), &ind))
 }

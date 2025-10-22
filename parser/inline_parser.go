@@ -105,7 +105,7 @@ func EmphasisAndStrongParser(text []rune, currentIndex *int) ast.Node { // *bold
 	char := '*'
 	ds := NewDelimiterStack()
 	for {
-		// if index is more than text then return node fo stack
+		// if index is more than length of text then return node fo stack
 		if *currentIndex >= len(text) {
 			sentenceNode := ast.NewSentenceNode(ds.ToNode())
 			return *sentenceNode
@@ -120,21 +120,12 @@ func EmphasisAndStrongParser(text []rune, currentIndex *int) ast.Node { // *bold
 				}
 			}
 			if delimiter.IsRightFlanking() {
-				// handle case where the delimiter can only close (basically pop the stack and create a node)
-				recentOpener, ok := ds.Peek()
-				// if stack is empty return the delimter noode as text
+				// if delimiter.CanClose(*recentOpener) {
+				finalNode, ok := ds.PopMatchingDelimiter(&delimiter)
 				if !ok {
-					return *ast.NewSentenceNode(delimiter.ToNode())
+					sentenceNode := ast.NewSentenceNode(finalNode)
+					return *sentenceNode
 				}
-				if delimiter.CanClose(*recentOpener) {
-					finalNode, ok := ds.PopMatchingDelimiter(&delimiter)
-					if !ok {
-						sentenceNode := ast.NewSentenceNode(finalNode)
-						return *sentenceNode
-					}
-					continue
-				}
-				delimiter.PushNode(delimiter.ToNode())
 				continue
 			}
 			if delimiter.isLeftFlanking {

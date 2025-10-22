@@ -114,44 +114,47 @@ func (d Delimiter) ToTextNode() []ast.Node {
 
 // should give a delimiter that can close the top delimiter returns final Node if its the final node, leftOver Closing Delimiter,
 func (ds *DelimiterStack) PopMatchingDelimiter(closer *Delimiter) ([]ast.Node, bool) {
-	opener, ok := ds.Peek()
-	if !ok {
-		node := closer.ToNode()
-		return node, false
-	}
-	if closer.Length() < opener.Length() {
-		// if closer delimiter runs length is less than opener delimiter run then we create a new delimiter that will close the closer delimiter
-		// the new delimiter will have properties of opener delimiter cuz its going to be the new opener delimiter for the closer one
-		// we will turn the matched delimiter (newly created opener one) into nodes and then push those nodes to the node that is on top of the
-		// stack ie opener
-		matchedDelimiter := NewDelimiter(opener.char, opener.length-closer.length, opener.isLeftFlanking, opener.isRightFlanking)
-		matchedDelimiter.nodes = opener.nodes
-		opener.length = opener.length - matchedDelimiter.length
-		opener.nodes = matchedDelimiter.ToNode()
-		return []ast.Node{}, true
-	}
+	// ook for this lets make a loop that checks whether the closer delimiter is empty, and runs till it isnt empty
+	// if the closer is empty then return
+	returnNodes := []ast.Node{}
+	for closer.length > 0 {
 
-	// if closer.Length is more tha opener.Length then we just pop the stack and turn it into node
-	// check if the stack is empty if its empty then we return the node and false, else
-	// the closer delimiter will be mutated
+		opener, ok := ds.Peek()
 
-	opener, _ = ds.Pop()
-	if ds.IsEmpty() {
-		return opener.ToNode(), false
+		if !ok {
+			node := closer.ToNode()
+			return node, false
+		}
+		if !closer.CanClose(*opener) {
+			ds.PushNode(closer.ToNode())
+			break
+		}
+
+		if closer.Length() < opener.Length() {
+			// if closer delimiter runs length is less than opener delimiter run then we create a new delimiter that will close the closer delimiter
+			// the new delimiter will have properties of opener delimiter cuz its going to be the new opener delimiter for the closer one
+			// we will turn the matched delimiter (newly created opener one) into nodes and then push those nodes to the node that is on top of the
+			// stack ie opener
+			matchedDelimiter := NewDelimiter(opener.char, opener.length-closer.length, opener.isLeftFlanking, opener.isRightFlanking)
+			matchedDelimiter.nodes = opener.nodes
+			opener.length = opener.length - matchedDelimiter.length
+			opener.nodes = matchedDelimiter.ToNode()
+			continue
+		}
+
+		// if closer.Length is more tha opener.Length then we just pop the stack and turn it into node
+		// check if the stack is empty if its empty then we return the node and false, else
+		// the closer delimiter will be mutated
+
+		opener, _ = ds.Pop()
+		if ds.IsEmpty() {
+			return opener.ToNode(), false
+		}
+		closer.length -= opener.length
+		ds.PushNode(opener.ToNode())
 	}
-	closer.length -= opener.length
-	ds.PushNode(opener.ToNode())
-
-	return []ast.Node{}, true
+	return returnNodes, true
 }
-
-// a delimiter that can both open and close cannot form emphasis if the sum of the lengths of the delimiter runs
-// containing the opening and closing delimiters is a multiple of 3 unless both lengths are multiples of 3.
-// see https://spec.commonmark.org/0.31.2/#example-411
-// Use this when encountering a delimiter which can both open and close
-// func ArePairsSpecial(d1 Delimiter, d2 Delimiter) bool {
-//
-// }
 
 type DelimiterStack struct {
 	stack []*Delimiter
