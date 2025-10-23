@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"unicode"
 
 	"github.com/0suyog/smrkdwnp/ast"
 	"github.com/0suyog/smrkdwnp/utils"
@@ -9,6 +10,8 @@ import (
 
 type Delimiter struct {
 	char            rune
+	text            []rune
+	position        int
 	length          int
 	isLeftFlanking  bool
 	isRightFlanking bool
@@ -17,13 +20,15 @@ type Delimiter struct {
 
 var EmptyDelimiter = Delimiter{}
 
-func NewDelimiter(char rune, length int, canOpen bool, canClose bool) Delimiter {
+func NewDelimiter(char rune, length int, isLeftFlanking bool, isRightFlanking bool, text []rune, position int) Delimiter {
 
 	d := Delimiter{
 		char:            char,
+		text:            text,
 		length:          length,
-		isLeftFlanking:  canOpen,
-		isRightFlanking: canClose,
+		isLeftFlanking:  isLeftFlanking,
+		isRightFlanking: isRightFlanking,
+		position:        position,
 	}
 	return d
 }
@@ -55,26 +60,65 @@ func (d *Delimiter) PushNode(node []ast.Node) {
 // containing the opening and closing delimiters is a multiple of 3 unless both lengths are multiples of 3.
 // see https://spec.commonmark.org/0.31.2/#example-411
 func (d *Delimiter) CanClose(d1 Delimiter) bool {
-
 	if d.char != d1.char {
 		return false
 	}
 
-	if !d.IsRightFlanking() {
-		return false
-	}
+	if d.char == '*' {
 
-	if !d.IsLeftFlanking() {
+		if !d.IsRightFlanking() {
+			return false
+		}
+
+		if !d.IsLeftFlanking() {
+			return true
+		}
+
+		// check if the sum of their lengh is going to be a multiple of three provided closing delimiter is both left and right flanking
+
+		if (d1.length%3 != 0 || d.length%3 != 0) && (d1.length+d.length)%3 == 0 {
+			return false
+		}
 		return true
+	} else if d.char == '_' {
+		if !d.isLeftFlanking {
+			return false
+		}
+		if d.isRightFlanking {
+			// check if the following character is a punctuation
+			if followingChar, err := utils.Peek(d.text, d.position+d.length); err != nil {
+				if unicode.IsPunct(followingChar) || unicode.IsSymbol(followingChar) {
+					return true
+				}
+			}
+			return false
+		}
+	}
+	return false
+}
+
+func (d Delimiter) CanOpen() bool {
+
+	if d.char == '*' {
+		if d.isLeftFlanking {
+			return true
+		}
 	}
 
-	// check if the sum of their lengh is going to be a multiple of three provided closing delimiter is both left and right flanking
-
-	if (d1.length%3 != 0 || d.length%3 != 0) && (d1.length+d.length)%3 == 0 {
-		return false
+	if d.char == '_' {
+		if d.isRightFlanking {
+			// check if the preceeding character is a punctuation
+			if preceedingChar, err := utils.PeekPrev(d.text, d.position+d.length); err != nil {
+				if unicode.IsPunct(preceedingChar) || unicode.IsSymbol(preceedingChar) {
+					return true
+				}
+			}
+			return false
+		}
 	}
 
-	return true
+	return false
+
 }
 
 func (d Delimiter) ToNode() []ast.Node {
@@ -122,7 +166,7 @@ func (ds *DelimiterStack) PopMatchingDelimiter(closer *Delimiter) ([]ast.Node, b
 		opener, ok := ds.Peek()
 
 		if !ok {
-			node := closer.ToNode()
+			node := closer.ToTextNode()
 			return node, false
 		}
 		if !closer.CanClose(*opener) {
@@ -135,7 +179,7 @@ func (ds *DelimiterStack) PopMatchingDelimiter(closer *Delimiter) ([]ast.Node, b
 			// the new delimiter will have properties of opener delimiter cuz its going to be the new opener delimiter for the closer one
 			// we will turn the matched delimiter (newly created opener one) into nodes and then push those nodes to the node that is on top of the
 			// stack ie opener
-			matchedDelimiter := NewDelimiter(opener.char, opener.length-closer.length, opener.isLeftFlanking, opener.isRightFlanking)
+			matchedDelimiter := NewDelimiter(opener.char, opener.length-closer.length, opener.isLeftFlanking, opener.isRightFlanking, opener.text, opener.position)
 			matchedDelimiter.nodes = opener.nodes
 			opener.length = opener.length - matchedDelimiter.length
 			opener.nodes = matchedDelimiter.ToNode()
@@ -199,10 +243,11 @@ func NewDelimiterStack() DelimiterStack {
 	return DelimiterStack{}
 }
 
-func ScanDelimiterRun(text []rune, char rune, index *int) (Delimiter, bool) {
-	if text[*index] != char {
+func ScanDelimiterRun(text []rune, index *int) (Delimiter, bool) {
+	if text[*index] != '*' && text[*index] != '_' {
 		return EmptyDelimiter, false
 	}
+	char := text[*index]
 	length := 1
 	*index++
 	start := *index - 1
@@ -218,7 +263,7 @@ func ScanDelimiterRun(text []rune, char rune, index *int) (Delimiter, bool) {
 	canClose := utils.IsRightFlankingDelimiterRun(text, start, *index)
 	fmt.Printf("index: %d canClose: %v\n", *index, canClose)
 
-	return NewDelimiter(char, length, canOpen, canClose), true
+	return NewDelimiter(char, length, canOpen, canClose, text, start), true
 }
 
 func (ds *DelimiterStack) ToNode() []ast.Node {
