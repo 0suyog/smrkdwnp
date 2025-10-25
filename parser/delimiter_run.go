@@ -60,13 +60,28 @@ func (d *Delimiter) PushNode(node []ast.Node) {
 // containing the opening and closing delimiters is a multiple of 3 unless both lengths are multiples of 3.
 // see https://spec.commonmark.org/0.31.2/#example-411
 func (d *Delimiter) CanClose(d1 Delimiter) bool {
+	fmt.Println("Testing can close")
+	fmt.Printf("The opener is %s", d1)
+	fmt.Printf("The closer is %s", d)
 	if d.char != d1.char {
+		fmt.Println("Apparantly char arent same")
 		return false
 	}
 
-	if d.char == '*' {
+	switch d.char {
+	case '*':
+
+		// check if the sum of their lengh is going to be a multiple of three provided delimiter is both left and right flanking
+		if (d.IsLeftFlanking() && d.IsRightFlanking()) || (d1.IsLeftFlanking() && d1.isRightFlanking) {
+			if (d1.length%3 != 0 || d.length%3 != 0) && (d1.length+d.length)%3 == 0 {
+				fmt.Println("Sum of three goit ")
+				return false
+			}
+			return true
+		}
 
 		if !d.IsRightFlanking() {
+			fmt.Println("It isnt right flanking")
 			return false
 		}
 
@@ -74,16 +89,12 @@ func (d *Delimiter) CanClose(d1 Delimiter) bool {
 			return true
 		}
 
-		// check if the sum of their lengh is going to be a multiple of three provided closing delimiter is both left and right flanking
+	case '_':
 
-		if (d1.length%3 != 0 || d.length%3 != 0) && (d1.length+d.length)%3 == 0 {
-			return false
-		}
-		return true
-	} else if d.char == '_' {
 		if !d.isLeftFlanking {
 			return false
 		}
+
 		if d.isRightFlanking {
 			// check if the following character is a punctuation
 			if followingChar, err := utils.Peek(d.text, d.position+d.length); err != nil {
@@ -156,48 +167,71 @@ func (d Delimiter) ToTextNode() []ast.Node {
 	return append([]ast.Node{ast.NewTextNode(delimiterString)}, d.nodes...)
 }
 
+func (d Delimiter) String() string {
+	return fmt.Sprintf("char: %s\nposition: %d\n length: %d\n isLeftFlanking: %v\n isRightFlanking: %v\n nodes: %s\n", string(d.char), d.position, d.length, d.isLeftFlanking, d.isRightFlanking, d.nodes)
+}
+
 // should give a delimiter that can close the top delimiter returns final Node if its the final node, leftOver Closing Delimiter,
-func (ds *DelimiterStack) PopMatchingDelimiter(closer *Delimiter) ([]ast.Node, bool) {
-	// ook for this lets make a loop that checks whether the closer delimiter is empty, and runs till it isnt empty
-	// if the closer is empty then return
-	returnNodes := []ast.Node{}
+func (ds *DelimiterStack) PopMatchingDelimiter(closer *Delimiter) (returnNodes []ast.Node, isFinalNode bool) {
+	// need to chek the wnhole stack and close any first one that can be closed,
+	index := len(ds.stack) - 1
 	for closer.length > 0 {
-
-		opener, ok := ds.Peek()
-
+		fmt.Printf("Index: %d, lengtho if stack : %d\n", index, len(ds.stack))
+		opener, ok := ds.PeekAt(index)
 		if !ok {
+			if closer.CanOpen() {
+				fmt.Println("this rang")
+				fmt.Println(closer.length)
+				return returnNodes, false
+			}
+			fmt.Println("This is returns final node")
 			node := closer.ToTextNode()
-			return node, false
+			return node, true
 		}
+		fmt.Printf("Closer is %s \n", closer)
+		fmt.Printf("Opener is %s\n", opener)
 		if !closer.CanClose(*opener) {
-			ds.PushNode(closer.ToNode())
-			break
+			fmt.Printf("Closer cnat close Opener")
+			index--
+			continue
 		}
-
+		fmt.Println("DCloser can close opener")
 		if closer.Length() < opener.Length() {
-			// if closer delimiter runs length is less than opener delimiter run then we create a new delimiter that will close the closer delimiter
-			// the new delimiter will have properties of opener delimiter cuz its going to be the new opener delimiter for the closer one
-			// we will turn the matched delimiter (newly created opener one) into nodes and then push those nodes to the node that is on top of the
-			// stack ie opener
-			matchedDelimiter := NewDelimiter(opener.char, opener.length-closer.length, opener.isLeftFlanking, opener.isRightFlanking, opener.text, opener.position)
-			matchedDelimiter.nodes = opener.nodes
-			opener.length = opener.length - matchedDelimiter.length
-			opener.nodes = matchedDelimiter.ToNode()
+			fmt.Println("Closer is shorter than opener")
+			// lets change the openers length to be equals to closers length, and make a new node whose length is leftover of the original opener
+			newDelimiter := NewDelimiter(
+				opener.char,
+				opener.length-closer.length,
+				opener.isLeftFlanking,
+				opener.isRightFlanking,
+				opener.text,
+				opener.position,
+			)
+			fmt.Printf("Stack is %s\n", ds.stack)
+			opener.length = closer.length
+			closer.length = 0
+			newDelimiter.nodes = ds.ToNodeUpto(index)
+			fmt.Println("dog")
+			fmt.Println(newDelimiter.nodes)
+			ds.Push(&newDelimiter)
+			fmt.Printf("The delimiterstack is %s\n", ds.stack)
 			continue
 		}
 
 		// if closer.Length is more tha opener.Length then we just pop the stack and turn it into node
-		// check if the stack is empty if its empty then we return the node and false, else
-		// the closer delimiter will be mutated
-
-		opener, _ = ds.Pop()
-		if ds.IsEmpty() {
-			return opener.ToNode(), false
-		}
+		// check if the stack is empty if its empty then we return the node and false, else change the length of closer delimiter
+		fmt.Println("Opener is shorter or equal than cloeser")
 		closer.length -= opener.length
-		ds.PushNode(opener.ToNode())
+		nodes := ds.ToNodeUpto(index)
+		if index == 0 {
+			fmt.Println("Idnex got to 0")
+			return nodes, true
+		}
+		ds.PushNode(nodes)
+		index--
 	}
-	return returnNodes, true
+	fmt.Println("This shouldnt react logically")
+	return returnNodes, false
 }
 
 type DelimiterStack struct {
@@ -220,6 +254,13 @@ func (ds *DelimiterStack) Peek() (*Delimiter, bool) {
 		return &EmptyDelimiter, false
 	}
 	return ds.stack[len(ds.stack)-1], true
+}
+
+func (ds *DelimiterStack) PeekAt(ind int) (*Delimiter, bool) {
+	if ds.IsEmpty() || ind < 0 || ind >= len(ds.stack) {
+		return &EmptyDelimiter, false
+	}
+	return ds.stack[ind], true
 }
 
 func (ds *DelimiterStack) Pop() (*Delimiter, bool) {
@@ -258,12 +299,12 @@ func ScanDelimiterRun(text []rune, index *int) (Delimiter, bool) {
 		*index++
 		length++
 	}
-	canOpen := utils.IsLeftFlankingDelimiterRun(text, start, *index)
-	fmt.Printf("index: %d canOpen: %v\n", *index, canOpen)
-	canClose := utils.IsRightFlankingDelimiterRun(text, start, *index)
-	fmt.Printf("index: %d canClose: %v\n", *index, canClose)
+	isLeftFlanking := utils.IsLeftFlankingDelimiterRun(text, start, *index)
+	// fmt.Printf("index: %d canOpen: %v\n", *index, canOpen)
+	isRightFlanking := utils.IsRightFlankingDelimiterRun(text, start, *index)
+	// fmt.Printf("index: %d canClose: %v\n", *index, canClose)
 
-	return NewDelimiter(char, length, canOpen, canClose, text, start), true
+	return NewDelimiter(char, length, isLeftFlanking, isRightFlanking, text, start), true
 }
 
 func (ds *DelimiterStack) ToNode() []ast.Node {
@@ -271,5 +312,29 @@ func (ds *DelimiterStack) ToNode() []ast.Node {
 	for _, d := range ds.stack {
 		arr = append(arr, d.ToTextNode()...)
 	}
+	ds.stack = []*Delimiter{}
 	return arr
+}
+
+func (ds *DelimiterStack) ToNodeUpto(ind int) []ast.Node {
+	arr := []ast.Node{}
+	fmt.Println("Turning stack into node")
+	fmt.Printf("Indes: %d\n", ind)
+	fmt.Printf("The stack is %s\n", ds.stack)
+	fmt.Printf("Length of stack: %d\n", len(ds.stack))
+	peekedDelimiter, ok := ds.PeekAt(ind)
+	if !ok {
+		panic("Invalid index provided")
+	}
+	if ind > 0 {
+		for _, d := range ds.stack[ind+1:] {
+			fmt.Printf("Delimiter Length %d\n", d.length)
+			arr = append(arr, d.ToTextNode()...)
+			fmt.Printf("Array is %s\n", arr)
+		}
+	}
+	peekedDelimiter.nodes = append(peekedDelimiter.nodes, arr...)
+	ds.stack = ds.stack[:ind]
+	fmt.Printf("Length of stack: %d\n", len(ds.stack))
+	return peekedDelimiter.ToNode()
 }

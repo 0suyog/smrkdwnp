@@ -73,7 +73,7 @@ func IsRightFlankingDelimiterRun(text []rune, from int, to int) bool {
 		return false
 	}
 	// if its preceededd by punctuation then it should be followed by sapce or punctuation to be right flanking delimiter run
-	if unicode.IsPunct(prevRune) || unicode.IsSymbol(prevRune) || unicode.IsSymbol(prevRune) {
+	if unicode.IsPunct(prevRune) || unicode.IsSymbol(prevRune) {
 		nextRune, err := Peek(text, to)
 		if err != nil || unicode.IsSpace(nextRune) || unicode.IsPunct(nextRune) || unicode.IsSymbol(nextRune) {
 			return true

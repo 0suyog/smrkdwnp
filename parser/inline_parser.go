@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"fmt"
+
 	"github.com/0suyog/smrkdwnp/ast"
 	"github.com/0suyog/smrkdwnp/utils"
 )
@@ -103,59 +105,43 @@ func CodeSpanParser(text []rune, currentIndex *int) ast.Node {
 
 func EmphasisAndStrongParser(text []rune, currentIndex *int) ast.Node {
 	ds := NewDelimiterStack()
+	sentenceNode := ast.NewSentenceNode([]ast.Node{})
 	for {
-		// if index is more than length of text then return node fo stack
 		if *currentIndex >= len(text) {
-			sentenceNode := ast.NewSentenceNode(ds.ToNode())
-			return *sentenceNode
+			sentenceNode.Nodes = append(sentenceNode.Nodes, ds.ToNode()...)
+			break
 		}
 		if delimiter, ok := ScanDelimiterRun(text, currentIndex); ok {
-			// _, ok := ds.Peek()
-			// if !ok && delimiter.CanOpen() {
-			// 	ds.Push(&delimiter)
-			// 	continue
-			// }
-			if ok {
-				// if delimiter.CanClose(*recentOpener) {
-				finalNode, ok := ds.PopMatchingDelimiter(&delimiter)
-				if !ok {
-					sentenceNode := ast.NewSentenceNode(finalNode)
-					return *sentenceNode
+			fmt.Printf("scanned Delimiter %d\n", delimiter.length)
+			if delimiter.isRightFlanking {
+				fmt.Printf("rightflanking Delimiter %d\n", delimiter.length)
+				finalNode, isFinalNode := ds.PopMatchingDelimiter(&delimiter)
+				if isFinalNode {
+					sentenceNode.Nodes = append(sentenceNode.Nodes, finalNode...)
+
+					if delimiter.length > 0 {
+						if delimiter.CanOpen() {
+							fmt.Println("Delimiter isnt fully closed so it is pushed to the stack again")
+							ds.Push(&delimiter)
+							continue
+						}
+					}
+
+					fmt.Println("This is final node one")
+					break
 				}
-				continue
-				// }
+
+				fmt.Println("Not a final node so continuing")
+			}
+
+			if !delimiter.CanOpen() {
+				fmt.Println("Nothing happened apparantly")
+				ds.PushNode(delimiter.ToNode())
 			}
 			if delimiter.CanOpen() {
+				fmt.Printf("Delimiter is a opener %d\n", delimiter.length)
 				ds.Push(&delimiter)
-				continue
 			}
-			// if delimiter.CanOpen() && delimiter.CanClose(*recentOpener)
-			// if delimiter.IsLeftFlanking() && delimiter.IsRightFlanking() {
-			// 	recentOpener, ok := ds.Peek()
-			// 	if !ok || !delimiter.CanClose(*recentOpener) {
-			// 		ds.Push(&delimiter)
-			// 		continue
-			// 	}
-			// }
-			// if delimiter.IsRightFlanking() {
-			// 	// if delimiter.CanClose(*recentOpener) {
-			// 	finalNode, ok := ds.PopMatchingDelimiter(&delimiter)
-			// 	if !ok {
-			// 		sentenceNode := ast.NewSentenceNode(finalNode)
-			// 		return *sentenceNode
-			// 	}
-			// 	continue
-			// }
-			// if delimiter.isLeftFlanking {
-			// 	ds.Push(&delimiter)
-			// 	continue
-			// }
-			if ds.IsEmpty() {
-				senteceNode := ast.NewSentenceNode(delimiter.ToNode())
-				return *senteceNode
-			}
-			ds.PushNode(delimiter.ToNode())
-			continue
 		}
 
 		if ds.IsEmpty() {
@@ -163,6 +149,8 @@ func EmphasisAndStrongParser(text []rune, currentIndex *int) ast.Node {
 		}
 
 		str := utils.ScanText(text, currentIndex, func(text []rune, index int) bool { return text[index] == '*' || text[index] == '_' })
+		fmt.Printf("Scanned Text %s\n", str)
 		ds.PushNode([]ast.Node{ast.NewTextNode(str)})
 	}
+	return *sentenceNode
 }

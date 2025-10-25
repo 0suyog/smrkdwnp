@@ -1,7 +1,6 @@
 package tokenizer
 
 import (
-	"fmt"
 	"unicode/utf8"
 )
 
