@@ -112,7 +112,7 @@ func EmphasisAndStrongParser(text []rune, currentIndex *int) ast.Node {
 			break
 		}
 		if delimiter, ok := ScanDelimiterRun(text, currentIndex); ok {
-			fmt.Printf("scanned Delimiter %d\n", delimiter.length)
+			fmt.Printf("scanned Delimiter %s\n", delimiter)
 			if delimiter.isRightFlanking {
 				fmt.Printf("rightflanking Delimiter %d\n", delimiter.length)
 				finalNode, isFinalNode := ds.PopMatchingDelimiter(&delimiter)
@@ -136,18 +136,20 @@ func EmphasisAndStrongParser(text []rune, currentIndex *int) ast.Node {
 
 			if !delimiter.CanOpen() {
 				fmt.Println("Nothing happened apparantly")
-				ds.PushNode(delimiter.ToNode())
+				if !ds.IsEmpty() {
+					ds.PushNode(delimiter.ToNode())
+					continue
+				}
+				sentenceNode.Nodes = append(sentenceNode.Nodes, delimiter.ToNode()...)
 			}
 			if delimiter.CanOpen() {
 				fmt.Printf("Delimiter is a opener %d\n", delimiter.length)
 				ds.Push(&delimiter)
 			}
 		}
-
 		if ds.IsEmpty() {
-			return ast.NULLNODE
+			return *sentenceNode
 		}
-
 		str := utils.ScanText(text, currentIndex, func(text []rune, index int) bool { return text[index] == '*' || text[index] == '_' })
 		fmt.Printf("Scanned Text %s\n", str)
 		ds.PushNode([]ast.Node{ast.NewTextNode(str)})

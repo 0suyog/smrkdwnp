@@ -128,7 +128,7 @@ func (d Delimiter) CanOpen() bool {
 		}
 	}
 
-	return false
+	return true
 
 }
 
