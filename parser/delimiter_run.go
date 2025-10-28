@@ -91,11 +91,11 @@ func (d *Delimiter) CanClose(d1 Delimiter) bool {
 
 	case '_':
 
-		if !d.isLeftFlanking {
+		if !d.isRightFlanking {
 			return false
 		}
 
-		if d.isRightFlanking {
+		if d.isLeftFlanking {
 			// check if the following character is a punctuation
 			if followingChar, err := utils.Peek(d.text, d.position+d.length); err != nil {
 				if unicode.IsPunct(followingChar) || unicode.IsSymbol(followingChar) {
@@ -105,7 +105,7 @@ func (d *Delimiter) CanClose(d1 Delimiter) bool {
 			return false
 		}
 	}
-	return false
+	return true
 }
 
 func (d Delimiter) CanOpen() bool {
@@ -117,9 +117,14 @@ func (d Delimiter) CanOpen() bool {
 	}
 
 	if d.char == '_' {
+		fmt.Printf("Delimiter is left Flanking %v\n", d.isLeftFlanking)
+		fmt.Printf("Delimiter is right Flanking %v\n", d.isRightFlanking)
+		if !d.isLeftFlanking {
+			return false
+		}
 		if d.isRightFlanking {
 			// check if the preceeding character is a punctuation
-			if preceedingChar, err := utils.PeekPrev(d.text, d.position+d.length); err != nil {
+			if preceedingChar, err := utils.PeekPrev(d.text, d.position); err == nil {
 				if unicode.IsPunct(preceedingChar) || unicode.IsSymbol(preceedingChar) {
 					return true
 				}
@@ -133,7 +138,8 @@ func (d Delimiter) CanOpen() bool {
 }
 
 func (d Delimiter) ToNode() []ast.Node {
-	if d.isLeftFlanking {
+
+	if d.CanOpen() {
 		numberOfStrong := d.length / 2
 		numberOfEmp := d.length % 2
 		var node *ast.Node
@@ -184,14 +190,20 @@ func (ds *DelimiterStack) PopMatchingDelimiter(closer *Delimiter) (returnNodes [
 				fmt.Println(closer.length)
 				return returnNodes, false
 			}
-			fmt.Println("This is returns final node")
-			node := closer.ToTextNode()
-			return node, true
+			if ds.IsEmpty() {
+				fmt.Println("This is returns final node")
+				node := closer.ToNode()
+				return node, true
+			}
+			ds.PushNode(closer.ToNode())
+			closer.length = 0
+			// fmt.Printf("after Pushing closer to delimiter closer is : %s", closer)
+			return returnNodes, false
 		}
 		fmt.Printf("Closer is %s \n", closer)
 		fmt.Printf("Opener is %s\n", opener)
 		if !closer.CanClose(*opener) {
-			fmt.Printf("Closer cnat close Opener")
+			fmt.Printf("Closer cant close Opener\n")
 			index--
 			continue
 		}
@@ -326,14 +338,16 @@ func (ds *DelimiterStack) ToNodeUpto(ind int) []ast.Node {
 	if !ok {
 		panic("Invalid index provided")
 	}
-	if ind > 0 {
-		for _, d := range ds.stack[ind+1:] {
-			fmt.Printf("Delimiter Length %d\n", d.length)
-			arr = append(arr, d.ToTextNode()...)
-			fmt.Printf("Array is %s\n", arr)
-		}
+	// if ind > 0 {
+	for _, d := range ds.stack[ind+1:] {
+		fmt.Printf("Delimiter Length %d\n", d.length)
+		arr = append(arr, d.ToTextNode()...)
+		fmt.Printf("Array is %s\n", arr)
 	}
+	// }
+	fmt.Printf("converted nodes are %s\n", arr)
 	peekedDelimiter.nodes = append(peekedDelimiter.nodes, arr...)
+	fmt.Printf("After append Peek Delimiter is %s\n", peekedDelimiter)
 	ds.stack = ds.stack[:ind]
 	fmt.Printf("Length of stack: %d\n", len(ds.stack))
 	return peekedDelimiter.ToNode()

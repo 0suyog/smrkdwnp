@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"unicode"
 )
 
@@ -20,6 +21,7 @@ func PeekPrev(text []rune, currentIndex int) (rune, error) {
 	if currentIndex <= 0 {
 		return rune(0), errors.New("Current Index cant be less or equals to 0")
 	}
+	fmt.Printf("Prev text is %s", string(text[currentIndex-1]))
 	return text[currentIndex-1], nil
 }
 

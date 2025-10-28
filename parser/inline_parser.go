@@ -120,27 +120,31 @@ func EmphasisAndStrongParser(text []rune, currentIndex *int) ast.Node {
 					sentenceNode.Nodes = append(sentenceNode.Nodes, finalNode...)
 
 					if delimiter.length > 0 {
+						fmt.Println("Delimiter still has length left")
 						if delimiter.CanOpen() {
 							fmt.Println("Delimiter isnt fully closed so it is pushed to the stack again")
 							ds.Push(&delimiter)
 							continue
 						}
 					}
-
 					fmt.Println("This is final node one")
 					break
+				}
+				if delimiter.length <= 0 {
+					continue
 				}
 
 				fmt.Println("Not a final node so continuing")
 			}
 
 			if !delimiter.CanOpen() {
-				fmt.Println("Nothing happened apparantly")
-				if !ds.IsEmpty() {
+				if ds.IsEmpty() {
+					fmt.Println("Nothing happened apparantly")
+					sentenceNode.Nodes = append(sentenceNode.Nodes, delimiter.ToNode()...)
+				} else {
+					fmt.Println("Nothing happened and pushed to ds")
 					ds.PushNode(delimiter.ToNode())
-					continue
 				}
-				sentenceNode.Nodes = append(sentenceNode.Nodes, delimiter.ToNode()...)
 			}
 			if delimiter.CanOpen() {
 				fmt.Printf("Delimiter is a opener %d\n", delimiter.length)

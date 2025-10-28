@@ -12,5 +12,5 @@ func main() {
 	ind := flag.Int("i", 0, "Start position of first delimiter")
 	flag.Parse()
 
-	fmt.Println(parser.EmphasisAndStrongParser([]rune(*text), ind))
+	fmt.Println(parser.ThematicBreakParser([]rune(*text), ind))
 }

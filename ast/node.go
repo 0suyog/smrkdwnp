@@ -54,6 +54,14 @@ func NewSentenceNode(nodes []Node) *Node {
 	}
 }
 
+func NewThematicBreakNode() *Node {
+	return &Node{
+		Name:  "THEMATICBREAK",
+		Value: "",
+		Nodes: []Node{},
+	}
+}
+
 func NewLeafNode(name string, value string) LeafNode {
 	return LeafNode{
 		name:  name,
