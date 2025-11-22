@@ -1,0 +1,83 @@
+Architect three types of libraries 
+  wholly self concerned
+  Logic package (that depend only on type 1 libraries)
+  Wiring package (that depend on both)
+
+
+Parse whole body(all of the text first) => ContainerBlock|LeafBlock
+ContainerBlock => LeafBlock
+LeafBlock => InlineBlock
+
+
+The program will have 3 steps process
+
+Parse all text and get a bodyContainer{
+  
+}
+
+
+package lines
+  struct Line{
+  content rune[]
+  delimiter int
+  indentation int
+  isEmpty bool
+  }
+
+  struct Lines{
+  content Line[]
+  incompleteParagraph
+  incompleteSetex
+  }
+
+
+package parser
+
+type LeafBlockParser func (Lines) LeafNode
+type ContainerBlockParser func (Lines) ContainerNode
+type InlineParser func (Lines) InlineNode
+
+
+main.go
+
+lines = scanLine
+
+Markdowntotext(lines)
+
+
+
+MarkDownToText(li lines)str{
+  ast=generateAst(lines)
+  GenerateHTML(ast.Head)
+}
+Node{
+  Name str
+  Value str
+  Nodes Node[]
+}
+GenerateHTML(Node) str{
+  for each node in Node.Nodes
+	 if node.name === "TEXT"{
+		return node.Value 
+	 }
+	 if node.name === "BOLD" {
+	 return fmt.Sprintf("<strong>%s</strong>",Generate(node))
+	 }
+	 if node.name === "HEADING1" {
+	 return <h1>GenerateHTML(node)</h1>
+	 }
+
+}
+
+
+package nodes
+
+type LeafNode struct{
+  Name str
+  content Line
+}
+
+type ContainerNode struct{
+  Name str
+  content 
+}

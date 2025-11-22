@@ -2,7 +2,6 @@ package utils
 
 import (
 	"errors"
-	"fmt"
 	"unicode"
 )
 
@@ -21,7 +20,6 @@ func PeekPrev(text []rune, currentIndex int) (rune, error) {
 	if currentIndex <= 0 {
 		return rune(0), errors.New("Current Index cant be less or equals to 0")
 	}
-	fmt.Printf("Prev text is %s", string(text[currentIndex-1]))
 	return text[currentIndex-1], nil
 }
 
@@ -109,4 +107,13 @@ func ScanText(text []rune, ind *int, until func(text []rune, index int) bool) st
 		*ind++
 	}
 
+}
+
+func Upto3Indentation(text []rune, ind *int, until func(text []rune, index int) bool) (firstRune rune, ok bool) {
+	for ; *ind < *ind+3; *ind++ {
+		if until(text, *ind) {
+			return text[*ind], true
+		}
+	}
+	return 0, false
 }

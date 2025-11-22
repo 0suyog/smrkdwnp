@@ -15,7 +15,7 @@ type Delimiter struct {
 	length          int
 	isLeftFlanking  bool
 	isRightFlanking bool
-	nodes           []ast.Node
+	nodes           []ast.ASTNODE
 }
 
 var EmptyDelimiter = Delimiter{}
@@ -48,11 +48,11 @@ func (d *Delimiter) IsRightFlanking() bool {
 	return d.isRightFlanking
 }
 
-func (d *Delimiter) Nodes() []ast.Node {
+func (d *Delimiter) Nodes() []ast.ASTNODE {
 	return d.nodes
 }
 
-func (d *Delimiter) PushNode(node []ast.Node) {
+func (d *Delimiter) PushNode(node []ast.ASTNODE) {
 	d.nodes = append(d.nodes, node...)
 }
 
@@ -137,40 +137,40 @@ func (d Delimiter) CanOpen() bool {
 
 }
 
-func (d Delimiter) ToNode() []ast.Node {
+func (d Delimiter) ToNode() []ast.ASTNODE {
 
 	if d.CanOpen() {
 		numberOfStrong := d.length / 2
 		numberOfEmp := d.length % 2
-		var node *ast.Node
+		var node *ast.ASTNODE
 		for numberOfStrong > 0 {
 			numberOfStrong--
 			if node == nil {
-				node = ast.NewStrongNode(d.char, d.nodes)
+				node = ast.NewAstNode(ast.BOLD, d.nodes)
 				continue
 			}
-			newStrongNode := ast.NewStrongNode(d.char, []ast.Node{*node})
+			newStrongNode := ast.NewAstNode(ast.BOLD, []ast.ASTNODE{*node})
 			node = newStrongNode
 		}
 		if numberOfEmp == 1 {
 			if node == nil {
-				node = ast.NewEmphasisNode(d.char, d.nodes)
+				node = ast.NewAstNode(ast.EMPHASIS, d.nodes)
 			} else {
-				node = ast.NewEmphasisNode(d.char, []ast.Node{*node})
+				node = ast.NewAstNode(ast.EMPHASIS, []ast.ASTNODE{*node})
 			}
 		}
-		return []ast.Node{*node}
+		return []ast.ASTNODE{*node}
 	}
 	return d.ToTextNode()
 }
 
-func (d Delimiter) ToTextNode() []ast.Node {
+func (d Delimiter) ToTextNode() []ast.ASTNODE {
 	delimiterString := ""
 	for d.length > 0 {
 		delimiterString += string(d.char)
 		d.length--
 	}
-	return append([]ast.Node{ast.NewTextNode(delimiterString)}, d.nodes...)
+	return append([]ast.ASTNODE{*ast.NewTextNode(delimiterString)}, d.nodes...)
 }
 
 func (d Delimiter) String() string {
@@ -178,7 +178,7 @@ func (d Delimiter) String() string {
 }
 
 // should give a delimiter that can close the top delimiter returns final Node if its the final node, leftOver Closing Delimiter,
-func (ds *DelimiterStack) PopMatchingDelimiter(closer *Delimiter) (returnNodes []ast.Node, isFinalNode bool) {
+func (ds *DelimiterStack) PopMatchingDelimiter(closer *Delimiter) (returnNodes []ast.ASTNODE, isFinalNode bool) {
 	// need to chek the wnhole stack and close any first one that can be closed,
 	index := len(ds.stack) - 1
 	for closer.length > 0 {
@@ -284,7 +284,7 @@ func (ds *DelimiterStack) Pop() (*Delimiter, bool) {
 	return dl, true
 }
 
-func (ds *DelimiterStack) PushNode(node []ast.Node) bool {
+func (ds *DelimiterStack) PushNode(node []ast.ASTNODE) bool {
 	if ds.IsEmpty() {
 		return false
 	}
@@ -319,8 +319,8 @@ func ScanDelimiterRun(text []rune, index *int) (Delimiter, bool) {
 	return NewDelimiter(char, length, isLeftFlanking, isRightFlanking, text, start), true
 }
 
-func (ds *DelimiterStack) ToNode() []ast.Node {
-	arr := []ast.Node{}
+func (ds *DelimiterStack) ToNode() []ast.ASTNODE {
+	arr := []ast.ASTNODE{}
 	for _, d := range ds.stack {
 		arr = append(arr, d.ToTextNode()...)
 	}
@@ -328,8 +328,8 @@ func (ds *DelimiterStack) ToNode() []ast.Node {
 	return arr
 }
 
-func (ds *DelimiterStack) ToNodeUpto(ind int) []ast.Node {
-	arr := []ast.Node{}
+func (ds *DelimiterStack) ToNodeUpto(ind int) []ast.ASTNODE {
+	arr := []ast.ASTNODE{}
 	fmt.Println("Turning stack into node")
 	fmt.Printf("Indes: %d\n", ind)
 	fmt.Printf("The stack is %s\n", ds.stack)
