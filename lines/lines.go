@@ -1,20 +1,36 @@
 package lines
 
-import ()
+import (
+	"bufio"
+	"os"
 
-type Lines struct {
-	Content              []Line
+	"github.com/0suyog/smrkdwnp/custom_errors"
+)
+
+type File struct {
 	IncompleteSetex      bool
 	IncompleteICodeBlock bool
+	file                 *os.File
+	sc                   *bufio.Scanner
+	NotUsedLines         []*Line
 }
 
-// func (lis *Lines) Parse() ast.Node {
-// 	bodyNode := ast.NewBodyNode()
-// 	leafParsers := []parser.Parser{}
-// 	for _, line := range lis.Content {
-// 		// node, ok := MatchFirst(line, leafParsers)
-// 		// // in case all parsers fail just make it a paragraph node
-// 		// bodyNode.Content = append(bodyNode.Content, node)
-//
-// 	}
-// }
+func NewFile(file *os.File) *File {
+	newSc := bufio.NewScanner(file)
+	return &File{
+		file: file,
+		sc:   newSc,
+	}
+}
+
+func (f *File) Line() (*Line, error) {
+	canScan := f.sc.Scan()
+	if !canScan {
+		return &Line{}, custom_errors.NoNewLine
+	}
+	return NewLine([]rune(f.sc.Text())), nil
+}
+
+func (f *File) Unused(l *Line) {
+	f.NotUsedLines = append(f.NotUsedLines, l)
+}

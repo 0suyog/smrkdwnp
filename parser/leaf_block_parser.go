@@ -1,5 +1,21 @@
 package parser
 
+import "github.com/0suyog/smrkdwnp/lines"
+
+type Leaf_Block_Parser func(f *lines.File) (*Leaf_Block, bool)
+
+//
+// import (
+// 	"github.com/0suyog/smrkdwnp/ast"
+// 	"github.com/0suyog/smrkdwnp/lines"
+// )
+//
+// type LeafBlockParser func(f *lines.File) (*ast.ASTNODE, bool)
+//
+// func ParseLeaf(f *lines.File) (*ast.ASTNODE, bool) {
+// 	_ = []LeafBlockParser{AtxHeadingParser}
+// }
+
 //
 // import (
 // 	"fmt"

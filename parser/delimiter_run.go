@@ -60,11 +60,11 @@ func (d *Delimiter) PushNode(node []ast.ASTNODE) {
 // containing the opening and closing delimiters is a multiple of 3 unless both lengths are multiples of 3.
 // see https://spec.commonmark.org/0.31.2/#example-411
 func (d *Delimiter) CanClose(d1 Delimiter) bool {
-	fmt.Println("Testing can close")
-	fmt.Printf("The opener is %s", d1)
-	fmt.Printf("The closer is %s", d)
+	// fmt.Println("Testing can close")
+	// fmt.Printf("The opener is %s", d1)
+	// fmt.Printf("The closer is %s", d)
 	if d.char != d1.char {
-		fmt.Println("Apparantly char arent same")
+		// fmt.Println("Apparantly char arent same")
 		return false
 	}
 
@@ -74,14 +74,14 @@ func (d *Delimiter) CanClose(d1 Delimiter) bool {
 		// check if the sum of their lengh is going to be a multiple of three provided delimiter is both left and right flanking
 		if (d.IsLeftFlanking() && d.IsRightFlanking()) || (d1.IsLeftFlanking() && d1.isRightFlanking) {
 			if (d1.length%3 != 0 || d.length%3 != 0) && (d1.length+d.length)%3 == 0 {
-				fmt.Println("Sum of three goit ")
+				// fmt.Println("Sum of three goit ")
 				return false
 			}
 			return true
 		}
 
 		if !d.IsRightFlanking() {
-			fmt.Println("It isnt right flanking")
+			// fmt.Println("It isnt right flanking")
 			return false
 		}
 
@@ -117,8 +117,8 @@ func (d Delimiter) CanOpen() bool {
 	}
 
 	if d.char == '_' {
-		fmt.Printf("Delimiter is left Flanking %v\n", d.isLeftFlanking)
-		fmt.Printf("Delimiter is right Flanking %v\n", d.isRightFlanking)
+		// fmt.Printf("Delimiter is left Flanking %v\n", d.isLeftFlanking)
+		// fmt.Printf("Delimiter is right Flanking %v\n", d.isRightFlanking)
 		if !d.isLeftFlanking {
 			return false
 		}
@@ -137,7 +137,7 @@ func (d Delimiter) CanOpen() bool {
 
 }
 
-func (d Delimiter) ToNode() []ast.ASTNODE {
+func (d Delimiter) ToNode() ast.ASTNODE {
 
 	if d.CanOpen() {
 		numberOfStrong := d.length / 2
@@ -159,57 +159,64 @@ func (d Delimiter) ToNode() []ast.ASTNODE {
 				node = ast.NewAstNode(ast.EMPHASIS, []ast.ASTNODE{*node})
 			}
 		}
-		return []ast.ASTNODE{*node}
+		return *node
 	}
-	return d.ToTextNode()
-}
-
-func (d Delimiter) ToTextNode() []ast.ASTNODE {
 	delimiterString := ""
 	for d.length > 0 {
 		delimiterString += string(d.char)
 		d.length--
 	}
-	return append([]ast.ASTNODE{*ast.NewTextNode(delimiterString)}, d.nodes...)
+	return *ast.NewTextNode(delimiterString)
+}
+
+func (d Delimiter) ToTextNode() ast.ASTNODE {
+	delimiterString := ""
+	for d.length > 0 {
+		delimiterString += string(d.char)
+		d.length--
+	}
+	return *ast.NewTextNode(delimiterString)
 }
 
 func (d Delimiter) String() string {
-	return fmt.Sprintf("char: %s\nposition: %d\n length: %d\n isLeftFlanking: %v\n isRightFlanking: %v\n nodes: %s\n", string(d.char), d.position, d.length, d.isLeftFlanking, d.isRightFlanking, d.nodes)
+	return fmt.Sprintf(
+		"char: %s\nposition: %d\n length: %d\n isLeftFlanking: %v\n isRightFlanking: %v\n nodes: %s\n",
+		string(d.char), d.position, d.length, d.isLeftFlanking, d.isRightFlanking, d.nodes)
 }
 
-// should give a delimiter that can close the top delimiter returns final Node if its the final node, leftOver Closing Delimiter,
-func (ds *DelimiterStack) PopMatchingDelimiter(closer *Delimiter) (returnNodes []ast.ASTNODE, isFinalNode bool) {
+// should give a delimiter that can close the top delimiter returns final Node if its the final node,
+func (ds *DelimiterStack) PopMatchingDelimiter(closer *Delimiter) (returnNode ast.ASTNODE, isFinalNode bool) {
 	// need to chek the wnhole stack and close any first one that can be closed,
 	index := len(ds.stack) - 1
 	for closer.length > 0 {
-		fmt.Printf("Index: %d, lengtho if stack : %d\n", index, len(ds.stack))
+		// fmt.Printf("Index: %d, lengtho if stack : %d\n", index, len(ds.stack))
 		opener, ok := ds.PeekAt(index)
 		if !ok {
 			if closer.CanOpen() {
-				fmt.Println("this rang")
-				fmt.Println(closer.length)
-				return returnNodes, false
+				// fmt.Println("this rang")
+				// fmt.Println(closer.length)
+				return returnNode, false
 			}
 			if ds.IsEmpty() {
-				fmt.Println("This is returns final node")
+				// fmt.Println("This is returns final node")
 				node := closer.ToNode()
 				return node, true
 			}
-			ds.PushNode(closer.ToNode())
+			ds.PushNode([]ast.ASTNODE{closer.ToNode()})
 			closer.length = 0
 			// fmt.Printf("after Pushing closer to delimiter closer is : %s", closer)
-			return returnNodes, false
+			return returnNode, false
 		}
-		fmt.Printf("Closer is %s \n", closer)
-		fmt.Printf("Opener is %s\n", opener)
+		// fmt.Printf("Closer is %s \n", closer)
+		// fmt.Printf("Opener is %s\n", opener)
 		if !closer.CanClose(*opener) {
-			fmt.Printf("Closer cant close Opener\n")
+			// fmt.Printf("Closer cant close Opener\n")
 			index--
 			continue
 		}
-		fmt.Println("DCloser can close opener")
+		// fmt.Println("DCloser can close opener")
 		if closer.Length() < opener.Length() {
-			fmt.Println("Closer is shorter than opener")
+			// fmt.Println("Closer is shorter than opener")
 			// lets change the openers length to be equals to closers length, and make a new node whose length is leftover of the original opener
 			newDelimiter := NewDelimiter(
 				opener.char,
@@ -219,31 +226,31 @@ func (ds *DelimiterStack) PopMatchingDelimiter(closer *Delimiter) (returnNodes [
 				opener.text,
 				opener.position,
 			)
-			fmt.Printf("Stack is %s\n", ds.stack)
+			// fmt.Printf("Stack is %s\n", ds.stack)
 			opener.length = closer.length
 			closer.length = 0
-			newDelimiter.nodes = ds.ToNodeUpto(index)
-			fmt.Println("dog")
-			fmt.Println(newDelimiter.nodes)
+			newDelimiter.nodes = []ast.ASTNODE{ds.ToNodeUpto(index)}
+			// fmt.Println("dog")
+			// fmt.Println(newDelimiter.nodes)
 			ds.Push(&newDelimiter)
-			fmt.Printf("The delimiterstack is %s\n", ds.stack)
+			// fmt.Printf("The delimiterstack is %s\n", ds.stack)
 			continue
 		}
 
 		// if closer.Length is more tha opener.Length then we just pop the stack and turn it into node
-		// check if the stack is empty if its empty then we return the node and false, else change the length of closer delimiter
-		fmt.Println("Opener is shorter or equal than cloeser")
+		// check if the stack is empty if its empty then we return the node and true, else change the length of closer delimiter
+		// fmt.Println("Opener is shorter or equal than cloeser")
 		closer.length -= opener.length
 		nodes := ds.ToNodeUpto(index)
 		if index == 0 {
-			fmt.Println("Idnex got to 0")
+			// fmt.Println("Idnex got to 0")
 			return nodes, true
 		}
-		ds.PushNode(nodes)
+		ds.PushNode([]ast.ASTNODE{nodes})
 		index--
 	}
-	fmt.Println("This shouldnt react logically")
-	return returnNodes, false
+	// fmt.Println("This shouldnt react logically")
+	return returnNode, false
 }
 
 type DelimiterStack struct {
@@ -322,33 +329,33 @@ func ScanDelimiterRun(text []rune, index *int) (Delimiter, bool) {
 func (ds *DelimiterStack) ToNode() []ast.ASTNODE {
 	arr := []ast.ASTNODE{}
 	for _, d := range ds.stack {
-		arr = append(arr, d.ToTextNode()...)
+		arr = append(arr, d.ToTextNode())
 	}
 	ds.stack = []*Delimiter{}
 	return arr
 }
 
-func (ds *DelimiterStack) ToNodeUpto(ind int) []ast.ASTNODE {
-	arr := []ast.ASTNODE{}
-	fmt.Println("Turning stack into node")
-	fmt.Printf("Indes: %d\n", ind)
-	fmt.Printf("The stack is %s\n", ds.stack)
-	fmt.Printf("Length of stack: %d\n", len(ds.stack))
+func (ds *DelimiterStack) ToNodeUpto(ind int) ast.ASTNODE {
+	createdNode := ast.ASTNODE{}
+	// fmt.Println("Turning stack into node")
+	// fmt.Printf("Indes: %d\n", ind)
+	// fmt.Printf("The stack is %s\n", ds.stack)
+	// fmt.Printf("Length of stack: %d\n", len(ds.stack))
 	peekedDelimiter, ok := ds.PeekAt(ind)
 	if !ok {
 		panic("Invalid index provided")
 	}
 	// if ind > 0 {
 	for _, d := range ds.stack[ind+1:] {
-		fmt.Printf("Delimiter Length %d\n", d.length)
-		arr = append(arr, d.ToTextNode()...)
-		fmt.Printf("Array is %s\n", arr)
+		// fmt.Printf("Delimiter Length %d\n", d.length)
+		createdNode = d.ToTextNode()
+		// fmt.Printf("Array is %s\n", arr)
 	}
 	// }
-	fmt.Printf("converted nodes are %s\n", arr)
-	peekedDelimiter.nodes = append(peekedDelimiter.nodes, arr...)
-	fmt.Printf("After append Peek Delimiter is %s\n", peekedDelimiter)
+	// fmt.Printf("converted nodes are %s\n", arr)
+	peekedDelimiter.nodes = append(peekedDelimiter.nodes, createdNode)
+	// fmt.Printf("After append Peek Delimiter is %s\n", peekedDelimiter)
 	ds.stack = ds.stack[:ind]
-	fmt.Printf("Length of stack: %d\n", len(ds.stack))
+	// fmt.Printf("Length of stack: %d\n", len(ds.stack))
 	return peekedDelimiter.ToNode()
 }

@@ -12,7 +12,7 @@ LeafBlock => InlineBlock
 The program will have 3 steps process
 
 Parse all text and get a bodyContainer{
-  
+ 
 }
 
 
@@ -72,7 +72,7 @@ GenerateHTML(Node) str{
 
 package nodes
 
-type LeafNode struct{
+type LeafBlock struct{
   Name str
   content Line
 }
@@ -81,3 +81,20 @@ type ContainerNode struct{
   Name str
   content 
 }
+
+how do we parse inline stuff in a line?
+in container blocks each line can only be one leaf block but in not container block one line can have multiple inline blocks how do we parse 
+that?
+
+like:- hello this is a paragraph with *italics* and **bold things** in them also with `code spans` 
+
+lets make a InlineParser function that takes a ASTNode and returns ASTNode
+
+func InlineParser(a LeafBlock) ASTNode{
+   
+}
+
+
+i get a file persumably i can read the file line by line then what do i do?
+i will have a global lines so i will put that a line in lines list
+that global list will be passed to leaf node parser  
