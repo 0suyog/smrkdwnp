@@ -16,3 +16,9 @@ type Container_Block struct {
 	Type     ast.NodeType
 	Children []*Leaf_Block
 }
+
+type IntermediaryBlock struct {
+	Type   ast.NodeType
+	IsOpen bool
+	Child  []*IntermediaryBlock
+}

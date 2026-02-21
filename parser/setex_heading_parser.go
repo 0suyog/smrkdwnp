@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"fmt"
+	// "fmt"
 
 	"github.com/0suyog/smrkdwnp/ast"
 	"github.com/0suyog/smrkdwnp/lines"
@@ -11,7 +11,6 @@ func SetexParser(f *lines.File) (*Leaf_Block, bool) {
 	line, err := f.Line()
 
 	if err != nil || line.Indentation > 3 {
-		fmt.Println("Either indentation or there is no line at all")
 		return &NullI_Leaf_Block, false
 	}
 
@@ -26,7 +25,7 @@ func SetexParser(f *lines.File) (*Leaf_Block, bool) {
 			return &NullI_Leaf_Block, false
 		}
 
-		if line.ContainsOnly('-', '=') && len(content) > 0 {
+		if line.ContainsOnlyWSpace('-', '=') && len(content) > 0 {
 			var headingBlock *Leaf_Block
 
 			if line.FirstRune == '-' {

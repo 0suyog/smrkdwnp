@@ -23,6 +23,7 @@ const (
 	HEADING6
 	PARAGRAPH
 	FRAGMENT
+	FENCEDCODEBLOCK
 	BODY
 )
 
@@ -63,10 +64,10 @@ func (nt NodeType) String() string {
 	}
 }
 
-func GenerateHTML(node ASTNODE) string {
+func GenerateHTML(node *ASTNODE) string {
 	html := ""
 	if node.Type == TEXT {
-		return node.Text
+		return string(node.Text)
 	}
 	switch node.Type {
 	case BOLD:
@@ -101,7 +102,7 @@ func GenerateHTML(node ASTNODE) string {
 	return html
 }
 
-func CreateHtmlTag(tagName string, children []ASTNODE) string {
+func CreateHtmlTag(tagName string, children []*ASTNODE) string {
 	childTags := ""
 	for _, c := range children {
 		childTags += GenerateHTML(c)
@@ -115,18 +116,18 @@ func CreateHtmlTag(tagName string, children []ASTNODE) string {
 
 type ASTNODE struct {
 	Type     NodeType
-	Text     string
-	Children []ASTNODE
+	Text     []rune
+	Children []*ASTNODE
 }
 
-func NewAstNode(t NodeType, c []ASTNODE) *ASTNODE {
+func NewAstNode(t NodeType, c []*ASTNODE) *ASTNODE {
 	return &ASTNODE{
 		Type:     t,
 		Children: c,
 	}
 }
 
-func NewTextNode(t string) *ASTNODE {
+func NewTextNode(t []rune) *ASTNODE {
 	return &ASTNODE{
 		Type: TEXT,
 		Text: t,
@@ -137,7 +138,7 @@ var NullNode = ASTNODE{}
 
 func (n ASTNODE) String() string {
 	if n.Type == TEXT {
-		return fmt.Sprintf("[%s: \"%s\"]", TEXT, n.Text)
+		return fmt.Sprintf("[%s: \"%s\"]", TEXT, string(n.Text))
 	}
 
 	var output strings.Builder

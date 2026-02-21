@@ -49,7 +49,7 @@ func (l *Line) StartsWith(r ...rune) bool {
 	return slices.Contains(r, l.FirstRune)
 }
 
-func (l *Line) ContainsOnly(r ...rune) bool {
+func (l *Line) ContainsOnlyWSpace(r ...rune) bool {
 	if !l.StartsWith(r...) {
 		return false
 	}
@@ -57,6 +57,15 @@ func (l *Line) ContainsOnly(r ...rune) bool {
 		if unicode.IsSpace(ru) {
 			continue
 		}
+		if !slices.Contains(r, ru) {
+			return false
+		}
+	}
+	return true
+}
+
+func (l *Line) ContainsOnly(r ...rune) bool {
+	for _, ru := range l.Content[l.Indentation:] {
 		if !slices.Contains(r, ru) {
 			return false
 		}

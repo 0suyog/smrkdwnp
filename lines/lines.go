@@ -12,25 +12,113 @@ type File struct {
 	IncompleteICodeBlock bool
 	file                 *os.File
 	sc                   *bufio.Scanner
-	NotUsedLines         []*Line
+	latestLine           *Line
+	unusedLineStack      *lineStack
+	stackPointer         int
+	resend               bool
+	IsFinishedScanning   bool
+	IsFinishedParsing    bool
 }
 
 func NewFile(file *os.File) *File {
 	newSc := bufio.NewScanner(file)
 	return &File{
-		file: file,
-		sc:   newSc,
+		file:            file,
+		sc:              newSc,
+		unusedLineStack: NewLineStack(),
 	}
 }
 
 func (f *File) Line() (*Line, error) {
-	canScan := f.sc.Scan()
-	if !canScan {
+	if f.resend {
+		if line, failed := f.unusedLineStack.get(); !failed {
+			return line, nil
+		} else {
+			f.resend = false
+		}
+	}
+	if f.IsFinishedScanning {
+		f.IsFinishedParsing = true
 		return &Line{}, custom_errors.NoNewLine
 	}
-	return NewLine([]rune(f.sc.Text())), nil
+	canScan := f.sc.Scan()
+	if !canScan {
+		f.unusedLineStack.resetStack()
+		f.IsFinishedScanning = true
+	}
+	retLine := NewLine([]rune(f.sc.Text()))
+	f.unusedLineStack.add(retLine)
+	return retLine, nil
 }
 
-func (f *File) Unused(l *Line) {
-	f.NotUsedLines = append(f.NotUsedLines, l)
+func (f *File) ParsingFailed() {
+	f.resend = true
+}
+
+func (f *File) ParsingSucceeded() {
+	f.unusedLineStack.remove()
+}
+
+func (f *File) GetAllUnusedLinesCombined() []rune {
+	return ConbineContent(' ', f.unusedLineStack.getAll()...)
+}
+
+type lineStack struct {
+	stack   []*Line
+	top     int
+	pointer int
+}
+
+func NewLineStack() *lineStack {
+	return &lineStack{
+		top:     -1,
+		pointer: -1,
+	}
+}
+
+func (s *lineStack) add(l *Line) {
+	s.stack = append(s.stack, l)
+	s.top++
+	s.pointer = s.top
+}
+
+func (s *lineStack) getTop() *Line {
+	return s.stack[s.top]
+}
+
+func (s *lineStack) get() (*Line, bool) {
+	if s.pointer < 0 {
+		return &Line{}, true
+	}
+	s.pointer--
+	return s.stack[s.pointer+1], false
+}
+
+func (s *lineStack) remove() {
+	if s.pointer <= 0 {
+		s.stack = []*Line{}
+		s.top = -1
+		s.pointer = s.top
+		return
+	}
+	s.stack = s.stack[0 : s.pointer+1]
+	s.top = s.pointer
+}
+
+func (s *lineStack) resetPointer() {
+	s.pointer = s.top
+}
+
+func (s *lineStack) getAll() []*Line {
+	ret := s.stack
+	s.stack = []*Line{}
+	s.top = -1
+	s.pointer = s.top
+	return ret
+}
+
+func (s *lineStack) resetStack() {
+	s.stack = []*Line{}
+	s.top = -1
+	s.pointer = -1
 }

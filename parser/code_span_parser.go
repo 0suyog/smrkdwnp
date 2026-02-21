@@ -5,9 +5,9 @@ import (
 	"github.com/0suyog/smrkdwnp/utils"
 )
 
-func CodeSpanParser(text []rune, currentIndex *int) (ast.ASTNODE, bool) {
+func CodeSpanParser(text []rune, currentIndex *int) (*ast.ASTNODE, bool) {
 	if text[*currentIndex] != '`' {
-		return ast.NullNode, false
+		return &ast.NullNode, false
 	}
 	index := *currentIndex
 	backTickCount := 1
@@ -17,9 +17,9 @@ func CodeSpanParser(text []rune, currentIndex *int) (ast.ASTNODE, bool) {
 	isAllSpace := true
 	// Counting number of backticks
 	for {
-		nextChar, err := utils.Peek(text, index)
+		nextChar, err := utils.At(text, index)
 		if err != nil {
-			return ast.NullNode, false
+			return &ast.NullNode, false
 		}
 		if nextChar != '`' {
 			break
@@ -31,18 +31,18 @@ func CodeSpanParser(text []rune, currentIndex *int) (ast.ASTNODE, bool) {
 	// getting text
 	for {
 		// replace line endign with space
-		nextChar, err := utils.Peek(text, index)
+		nextChar, err := utils.At(text, index)
 		if err != nil {
-			return ast.NullNode, false
+			return &ast.NullNode, false
 		}
 		if nextChar == '\n' || nextChar == '\r' {
 			// if line ending is followed by another line ending then not valid codespan
-			nextChar, err := utils.Peek(text, index+1)
+			nextChar, err := utils.At(text, index+1)
 			if err != nil {
-				return ast.NullNode, false
+				return &ast.NullNode, false
 			}
 			if nextChar == '\n' || nextChar == '\r' {
-				return ast.NullNode, false
+				return &ast.NullNode, false
 			}
 			matchedRunes = append(matchedRunes, ' ')
 			index++
@@ -54,10 +54,10 @@ func CodeSpanParser(text []rune, currentIndex *int) (ast.ASTNODE, bool) {
 			closingTag := "`"
 			index++
 			for {
-				char, err := utils.Peek(text, index)
+				char, err := utils.At(text, index)
 				if err != nil {
 					if len(closingTag) != backTickCount {
-						return ast.NullNode, false
+						return &ast.NullNode, false
 					}
 					foundCloseTag = true
 					break
@@ -89,17 +89,16 @@ func CodeSpanParser(text []rune, currentIndex *int) (ast.ASTNODE, bool) {
 
 	// if there is no matched runes then return null node
 	if len(matchedRunes) == 0 {
-		return ast.NullNode, false
+		return &ast.NullNode, false
 	}
 
 	// remove 1 trailing and preceeding whitespace character if white space present
 	// in both front and back if the matched string isnt all space
-	matchedText := string(matchedRunes)
 	if !isAllSpace {
 		if matchedRunes[0] == ' ' && matchedRunes[len(matchedRunes)-1] == ' ' {
-			matchedText = string(matchedRunes[1 : len(matchedRunes)-1])
+			matchedRunes = matchedRunes[1 : len(matchedRunes)-1]
 		}
 	}
 	*currentIndex = index
-	return *ast.NewAstNode(ast.CODESPAN, []ast.ASTNODE{*ast.NewTextNode(matchedText)}), true
+	return ast.NewAstNode(ast.CODESPAN, []*ast.ASTNODE{ast.NewTextNode(matchedRunes)}), true
 }
