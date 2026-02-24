@@ -24,6 +24,7 @@ const (
 	PARAGRAPH
 	FRAGMENT
 	FENCEDCODEBLOCK
+	INDENTEDCODEBLOCK
 	BODY
 )
 
@@ -59,60 +60,89 @@ func (nt NodeType) String() string {
 		return "BODY"
 	case NULL:
 		return "NULL?"
+	case FENCEDCODEBLOCK:
+		return "FENCEDCODEBLOCK"
+	case INDENTEDCODEBLOCK:
+		return "INDENTEDCODEBLOCK"
 	default:
 		panic(fmt.Sprintf("unexpected ast.NodeType %d", nt))
 	}
 }
 
+type HTMLTag struct {
+	tags  []string
+	class string
+}
+
 func GenerateHTML(node *ASTNODE) string {
+	log.Println("node type: ", node.Type)
 	html := ""
 	if node.Type == TEXT {
 		return string(node.Text)
 	}
 	switch node.Type {
 	case BOLD:
-		html += CreateHtmlTag("strong", node.Children)
+		html += CreateHtmlTag(&HTMLTag{tags: []string{"strong"}}, node.Children)
 	case EMPHASIS:
-		html += CreateHtmlTag("em", node.Children)
+		html += CreateHtmlTag(&HTMLTag{tags: []string{"em"}}, node.Children)
 	case CODESPAN:
-		html += CreateHtmlTag("code", node.Children)
+		html += CreateHtmlTag(&HTMLTag{tags: []string{"code"}}, node.Children)
 	case HEADING1:
-		html += CreateHtmlTag("h1", node.Children)
+		html += CreateHtmlTag(&HTMLTag{tags: []string{"h1"}}, node.Children)
 	case HEADING2:
-		html += CreateHtmlTag("h2", node.Children)
+		html += CreateHtmlTag(&HTMLTag{tags: []string{"h2"}}, node.Children)
 	case HEADING3:
-		html += CreateHtmlTag("h3", node.Children)
+		html += CreateHtmlTag(&HTMLTag{tags: []string{"h3"}}, node.Children)
 	case HEADING4:
-		html += CreateHtmlTag("h4", node.Children)
+		html += CreateHtmlTag(&HTMLTag{tags: []string{"h4"}}, node.Children)
 	case HEADING5:
-		html += CreateHtmlTag("h5", node.Children)
+		html += CreateHtmlTag(&HTMLTag{tags: []string{"h5"}}, node.Children)
 	case HEADING6:
-		html += CreateHtmlTag("h6", node.Children)
+		html += CreateHtmlTag(&HTMLTag{tags: []string{"h6"}}, node.Children)
 	case THEMATICBREAK:
-		html += "<hr/>"
+		html += "<hr />"
 	case PARAGRAPH:
-		html += CreateHtmlTag("p", node.Children)
+		html += CreateHtmlTag(&HTMLTag{tags: []string{"p"}}, node.Children)
 	case FRAGMENT:
-		html += CreateHtmlTag("", node.Children)
+		html += CreateHtmlTag(&HTMLTag{tags: []string{}}, node.Children)
 	case BODY:
-		html += CreateHtmlTag("body", node.Children)
+		html += CreateHtmlTag(&HTMLTag{tags: []string{"body"}}, node.Children)
+	case FENCEDCODEBLOCK:
+		html += CreateHtmlTag(&HTMLTag{tags: []string{"pre", "code"}}, node.Children)
+	case INDENTEDCODEBLOCK:
+		html += CreateHtmlTag(&HTMLTag{tags: []string{"pre", "code"}}, node.Children)
 	default:
 		log.Fatalf("unexpected ast.NodeType: %s", node.Type)
 	}
 	return html
 }
 
-func CreateHtmlTag(tagName string, children []*ASTNODE) string {
+func CreateHtmlTag(htmlTag *HTMLTag, children []*ASTNODE) string {
+	log.Println("creating html tag for", htmlTag)
 	childTags := ""
 	for _, c := range children {
 		childTags += GenerateHTML(c)
 	}
-	if tagName == "" {
+	if len(htmlTag.tags) == 0 {
 		return childTags
 	}
-	parentTag := fmt.Sprintf("<%s>%s</%s>", tagName, childTags, tagName)
+	opener, closer := "", ""
+	for _, t := range htmlTag.tags {
+		opener = fmt.Sprintf("%s<%s>", opener, t)
+		closer = fmt.Sprintf("</%s>%s", t, closer)
+	}
+	log.Println("opener: ", opener, "closer: ", closer)
+	parentTag := fmt.Sprintf("%s%s%s", opener, childTags, closer)
+	log.Println("parent tag", parentTag)
 	return parentTag
 }
+
+// func MultiTagBlock(children []*ASTNODE, tags []*string) {
+// 	opener, closer := "", ""
+// 	for _, t := range tags{
+// 		opener += ""
+// 	}
+// }
 
 type ASTNODE struct {
 	Type     NodeType
@@ -152,121 +182,3 @@ func (n ASTNODE) String() string {
 	output.WriteString("]")
 	return output.String()
 }
-
-// type LeafNode struct {
-// 	Name    string
-// 	Content []rune
-// }
-//
-// type ContainerNode struct {
-// 	Name    string
-// 	Content []LeafNode
-// }
-//
-// type InlineNode struct {
-// 	Name  string
-// 	Value string
-// 	Nodes []InlineNode
-// }
-//
-// func NewNode(name string, nodes []InlineNode) InlineNode {
-// 	return InlineNode{
-// 		Name:  name,
-// 		Nodes: nodes,
-// 	}
-// }
-//
-// func NewEmphasisNode(char rune, nodes []InlineNode) *InlineNode {
-// 	return &InlineNode{
-// 		Name:  "EMPHASIS",
-// 		Value: string(char),
-// 		Nodes: nodes,
-// 	}
-// }
-//
-// func NewStrongNode(char rune, nodes []InlineNode) *InlineNode {
-// 	return &InlineNode{
-// 		Name:  "STRONG",
-// 		Value: string(char),
-// 		Nodes: nodes,
-// 	}
-// }
-//
-// func NewSentenceNode(nodes []InlineNode) *InlineNode {
-// 	return &InlineNode{
-// 		Name:  "SENTENCE",
-// 		Value: "meow",
-// 		Nodes: nodes,
-// 	}
-// }
-//
-// func NewHeadingNode(level int, content []rune) *LeafNode {
-// 	node := LeafNode{
-// 		Name:    "HEADING" + strconv.Itoa(level),
-// 		Content: content,
-// 	}
-// 	return &node
-// }
-// func NewLeafNode(name string, value string) LeafNode {
-// 	return LeafNode{
-// 		Name:    name,
-// 		Content: []rune{},
-// 	}
-// }
-//
-// func NewThematicBreakNode() LeafNode {
-// 	return LeafNode{
-// 		Name:    "THEMATICBREAK",
-// 		Content: []rune{},
-// 	}
-// }
-//
-// func NewParagraphNode(content []rune) LeafNode {
-// 	return LeafNode{
-// 		Name:    "PARAGRAPH",
-// 		Content: content,
-// 	}
-// }
-//
-// func NewBodyNode() ContainerNode {
-// 	return ContainerNode{
-// 		Name: "BODY",
-// 	}
-// }
-//
-// var NullLeafNode = LeafNode{
-// 	Name: "",
-// }
-//
-// var NULLNODE = InlineNode{
-// 	Name:  "",
-// 	Value: "",
-// }
-//
-// func (ln LeafNode) String() string {
-// 	return fmt.Sprintf("node_name: %s, node_content: \"%s\"", ln.Name, string(ln.Content))
-// }
-//
-// func (ln LeafNode) ToHTML() string {
-// 	return "HTML"
-// }
-//
-// func (n InlineNode) String() string {
-// 	if n.Name == "TEXT" {
-// 		return fmt.Sprintf("[%s: \"%s\"]", n.Name, n.Value)
-// 	}
-//
-// 	output := fmt.Sprintf("%s: [", n.Name)
-// 	for i, cn := range n.Nodes {
-// 		if i > 0 {
-// 			output += ", "
-// 		}
-// 		output += cn.String()
-// 	}
-// 	output += "]"
-// 	return output
-// }
-//
-// func (in InlineNode) ToHTML() string {
-// 	return "InlineHTML"
-// }

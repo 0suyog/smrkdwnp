@@ -1,48 +1,44 @@
 package parser
 
 import (
-	// "fmt"
+	"log"
 
 	"github.com/0suyog/smrkdwnp/ast"
 	"github.com/0suyog/smrkdwnp/lines"
 )
 
 func SetexParser(f *lines.File) (*Leaf_Block, bool) {
+	log.Println("setex")
 	line, err := f.Line()
-
-	if err != nil || line.Indentation > 3 {
+	if f.StackLength() < 2 {
 		return &NullI_Leaf_Block, false
 	}
-
-	var content []*lines.Line
-
-	for {
-		if err != nil {
-			return &NullI_Leaf_Block, false
-		}
-		// fmt.Println(string(line.Content))
-		if line.IsEmpty {
-			return &NullI_Leaf_Block, false
-		}
-
-		if line.ContainsOnlyWSpace('-', '=') && len(content) > 0 {
-			var headingBlock *Leaf_Block
-
-			if line.FirstRune == '-' {
-				headingBlock = &Leaf_Block{
-					Type: ast.HEADING2,
-				}
-			} else {
-				headingBlock = &Leaf_Block{
-					Type: ast.HEADING1,
-				}
-			}
-
-			headingBlock.Content = lines.ConbineContent(' ', content...)
-			return headingBlock, true
-		}
-		content = append(content, line)
-
-		line, err = f.Line()
+	if err != nil || line.Indentation > 3 {
+		// log.Println("failed cuz nil")
+		return &NullI_Leaf_Block, false
 	}
+	if line.ContainsOnly('-') {
+		f.ParsingSucceeded()
+		content := f.GetAllUnusedLinesCombined()
+		log.Println("this succeeded the - one")
+		return &Leaf_Block{
+			Type:    ast.HEADING2,
+			Content: content,
+		}, true
+
+	}
+
+	if line.ContainsOnly('=') {
+		// log.Println("meow")
+		f.ParsingSucceeded()
+		log.Println("this succeeded the = one")
+		content := f.GetAllUnusedLinesCombined()
+		return &Leaf_Block{
+			Type:    ast.HEADING1,
+			Content: content,
+		}, true
+	}
+	// log.Println("failed cuz not = or -")
+	// log.Println(string(line.Content))
+	return &NullI_Leaf_Block, false
 }

@@ -1,11 +1,14 @@
 package parser
 
 import (
+	"log"
+
 	"github.com/0suyog/smrkdwnp/ast"
 	"github.com/0suyog/smrkdwnp/lines"
 )
 
 func AtxParser(f *lines.File) (*Leaf_Block, bool) {
+	log.Println("atx")
 	line, err := f.Line()
 	headingBlock := Leaf_Block{}
 	if err != nil || line.Indentation > 3 || line.FirstRune != '#' {

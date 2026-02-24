@@ -65,6 +65,9 @@ func (l *Line) ContainsOnlyWSpace(r ...rune) bool {
 }
 
 func (l *Line) ContainsOnly(r ...rune) bool {
+	if !l.StartsWith(r...) {
+		return false
+	}
 	for _, ru := range l.Content[l.Indentation:] {
 		if !slices.Contains(r, ru) {
 			return false
@@ -73,11 +76,13 @@ func (l *Line) ContainsOnly(r ...rune) bool {
 	return true
 }
 
-func ConbineContent(seperator_delimiter rune, l ...*Line) []rune {
+func CombineContent(seperator_delimiter rune, l ...*Line) []rune {
 	content := []rune{}
 	for _, li := range l {
+		if len(content) > 0 {
+			content = append(content, seperator_delimiter)
+		}
 		content = append(content, li.Content...)
-		content = append(content, seperator_delimiter)
 	}
 	return content
 }

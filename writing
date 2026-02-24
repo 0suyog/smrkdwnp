@@ -1,0 +1,15 @@
+a paragraph should be made once every parsed is used and nothing
+successfully parsed
+
+if a normal parser failed, we dont immediately make a paragraph
+a new paragraph is made if and only if there are hard line breaks
+encounter an empty line, or there are unused text but a parser success
+fully parsed a line so previous unused lines will be made into a paragraph
+
+
+pre
+code
+
+""
+</pre>""
+</code></pre>""

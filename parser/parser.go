@@ -1,10 +1,8 @@
 package parser
 
 import (
-	// "log"
-
-	"fmt"
-	"os"
+	"io"
+	"log"
 
 	"github.com/0suyog/smrkdwnp/ast"
 	"github.com/0suyog/smrkdwnp/lines"
@@ -49,33 +47,76 @@ func Parse_Leaf_Block(lb *Leaf_Block) *ast.ASTNODE {
 	// }
 	// return parentNode
 }
-
 func Scan_Leaf_Block(f *lines.File) *Container_Block {
 	bodyNode := Container_Block{ast.BODY, []*Leaf_Block{}}
-	parsers := []Leaf_Block_Parser{AtxParser, SetexParser}
+	multilineParsers := []Leaf_Block_Parser{SetexParser, IndentedCodeBlockParser}
+	parsers := []Leaf_Block_Parser{ThematicBlockParser, AtxParser}
+	// log.Println("test")
 	for !f.IsFinishedParsing {
-		didntMatchAny := true
-		for _, p := range parsers {
+		parsedBlocks := []*Leaf_Block{}
+		// log.Println(string(lines.ConbineContent(' ', f.GetStack().GetStack()...)))
+		makeParagraph := false
+		parsedSuccessful := false
+		for _, p := range multilineParsers {
+			log.Println("in dangling parser")
 			parsedNode, success := p(f)
 			if !success {
-				f.ParsingFailed()
 				continue
 			}
-			f.ParsingSucceeded()
-			didntMatchAny = false
-			bodyNode.Children = append(bodyNode.Children, parsedNode)
+			parsedSuccessful = true
+			log.Println("parsedNode: ", string(parsedNode.Content))
+			parsedBlocks = append(parsedBlocks, parsedNode)
 			break
 		}
-		if didntMatchAny {
-			if content := f.GetAllUnusedLinesCombined(); len(content) > 0 {
-				paraNode := Leaf_Block{
-					Type:    ast.PARAGRAPH,
-					Content: content,
+		if !parsedSuccessful {
+			for _, p := range parsers {
+				prevStackLen := f.StackLength()
+				log.Println("in  parser")
+				// log.Println(string(lines.ConbineContent(' ', f.GetStack().GetStack()...)))
+				parsedNode, success := p(f)
+				log.Println("parsing")
+				if !success {
+					log.Println("failed")
+					continue
 				}
+				log.Println("passed")
+				log.Println("parsed Node: ", string(parsedNode.Content))
+				log.Println("prev stack len: ", prevStackLen, "stack len: ", f.StackLength())
+				if f.StackLength() != prevStackLen+1 {
+					makeParagraph = true
+				}
+				log.Println("making paragraph")
 				f.ParsingSucceeded()
-				bodyNode.Children = append(bodyNode.Children, &paraNode)
+				parsedBlocks = append(parsedBlocks, parsedNode)
+				break
 			}
+			if !makeParagraph {
+				log.Println("checking to make paragraph")
+				l, err := f.Line()
+				if err != nil {
+					makeParagraph = true
+				} else if l.IsEmpty {
+					f.ParsingSucceeded()
+					makeParagraph = true
+				}
+			}
+
+			if makeParagraph {
+				log.Println("succeeded")
+				log.Println(string(lines.CombineContent(' ', f.GetStack().GetStack()...)))
+				if content := f.GetAllUnusedLinesCombined(); len(content) > 0 {
+					paraNode := Leaf_Block{
+						Type:    ast.PARAGRAPH,
+						Content: content,
+					}
+					parsedBlocks = append([]*Leaf_Block{&paraNode}, parsedBlocks...)
+				}
+			} else {
+				log.Println("failed")
+			}
+			f.Next()
 		}
+		bodyNode.Children = append(bodyNode.Children, parsedBlocks...)
 	}
 	return &bodyNode
 }
@@ -89,10 +130,11 @@ func Parse_Container_Block(container *Container_Block) *ast.ASTNODE {
 	return bodyNode
 }
 
-func Parse(f *os.File) {
+func Parse(f io.Reader) string {
 	md := lines.NewFile(f)
 	body := Scan_Leaf_Block(md)
 	parsed_Document := Parse_Container_Block(body)
+	log.Println("parsed Doc: ", parsed_Document)
 	genHtml := ast.GenerateHTML(parsed_Document)
-	fmt.Println(genHtml)
+	return genHtml
 }

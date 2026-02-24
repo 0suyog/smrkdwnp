@@ -1,57 +1,35 @@
 package parser
 
-//
-// import (
-// 	"fmt"
-//
-// 	"github.com/0suyog/smrkdwnp/ast"
-// 	"github.com/0suyog/smrkdwnp/lines"
-// )
-//
-// func ThematicBreakParser(line lines.Line) (ast.LeafNode, bool) {
-// 	var char rune
-// 	tempIndex := 0
-// 	if line.Indentation > 3 {
-// 		return ast.NullLeafNode, false
-// 	}
-// 	if line.FirstRune() == '*' || line.FirstRune() == '-' || line.FirstRune() == '_' {
-// 		char = line.FirstRune()
-// 	}
-// 	if char == 0 {
-// 		fmt.Println("Didnt find any character")
-// 		return ast.NullLeafNode, false
-// 	}
-// 	// making sure atleast 3 same character are in thre
-// 	tempIndex += 1
-// 	length := 1
-// 	for ; length < 3; tempIndex++ {
-// 		peekedRune, err := line.At(tempIndex)
-// 		if err != nil {
-// 			fmt.Println("Finished before 3 character")
-// 			return ast.NullLeafNode, false
-// 		}
-// 		if peekedRune == ' ' || peekedRune == '\t' {
-// 			continue
-// 		}
-// 		if peekedRune != char {
-// 			fmt.Println("Anotehr character found before 3 char")
-// 			return ast.NullLeafNode, false
-// 		}
-// 		fmt.Println(string(peekedRune))
-// 		length++
-// 		fmt.Println(length)
-// 	}
-//
-// 	// checking there are no other character in the whole line
-// 	for ; ; tempIndex++ {
-// 		peekedRune, err := line.At(tempIndex)
-// 		if err != nil || peekedRune == '\n' {
-// 			break
-// 		}
-// 		if peekedRune != ' ' && peekedRune != '\t' && peekedRune != char {
-// 			fmt.Println("Anotehr character found")
-// 			return ast.NullLeafNode, false
-// 		}
-// 	}
-// 	return ast.NewThematicBreakNode(), true
-// }
+import (
+	"log"
+
+	"github.com/0suyog/smrkdwnp/ast"
+	"github.com/0suyog/smrkdwnp/lines"
+)
+
+func ThematicBlockParser(f *lines.File) (*Leaf_Block, bool) {
+	log.Println("thematic")
+	line, err := f.Line()
+
+	if err != nil || line.Indentation > 3 || !line.ContainsOnlyWSpace('*', '-', '_') {
+		log.Println("failed, line: ", string(line.Content))
+		return &NullI_Leaf_Block, false
+	}
+
+	delimiter := line.FirstRune
+	count := 0
+	for _, r := range line.Content {
+		if r != delimiter && r != ' ' {
+			return &NullI_Leaf_Block, false
+		}
+		count++
+	}
+	if count < 3 {
+		log.Println("failed, line: ", string(line.Content))
+		log.Println("count of delim: ", count)
+		return &NullI_Leaf_Block, false
+	}
+	return &Leaf_Block{
+		Type: ast.THEMATICBREAK,
+	}, true
+}

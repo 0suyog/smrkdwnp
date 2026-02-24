@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -8,9 +9,11 @@ import (
 )
 
 func main() {
+	log.Print("\n\n************NEW LOG************\n\n")
 	file, err := os.Open("markdown.md")
 	if err != nil {
 		log.Fatal(err)
 	}
-	parser.Parse(file)
+	defer file.Close()
+	fmt.Println(parser.Parse(file))
 }
